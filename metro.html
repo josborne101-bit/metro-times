@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Metro Times</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: white;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+.station {
+  margin-bottom: 25px;
+  padding: 15px;
+  background: #1e1e1e;
+  border-radius: 8px;
+}
+
+.train {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #333;
+}
+
+.train:last-child {
+  border-bottom: none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🚇 Metro Train Times</h1>
+<div id="app">Loading...</div>
+
+<script>
+const API_KEY = "64bbdcf89bbc43bf966ab26182c2c4a6";
+
+const STATIONS = [
+  "B05",        // Brookland–CUA
+  "B06", "E06", // Fort Totten
+  "E01", "F01", // Gallery Place
+  "C07"         // Pentagon
+];
+
+async function fetchTrains() {
+  const url = `https://api.wmata.com/StationPrediction.svc/json/GetPrediction/${STATIONS.join(",")}`;
+
+  const response = await fetch(url, {
+    headers: { "api_key": API_KEY }
+  });
+
+  if (!response.ok) {
+    throw new Error("API error");
+  }
+
+  return response.json();
+}
+
+function render(data) {
+  const container = document.getElementById("app");
+  container.innerHTML = "";
+
+  const grouped = {};
+
+  data.Trains.forEach(train => {
+    if (!grouped[train.LocationName]) {
+      grouped[train.LocationName] = [];
+    }
+    grouped[train.LocationName].push(train);
+  });
+
+  for (const station in grouped) {
+    const stationDiv = document.createElement("div");
+    stationDiv.className = "station";
+    stationDiv.innerHTML = `<h2>${station}</h2>`;
+
+    grouped[station].forEach(t => {
+      const row = document.createElement("div");
+      row.className = "train";
+      row.innerHTML = `
+        <span>${t.Line}</span>
+        <span>${t.DestinationName}</span>
+        <span>${t.Min}</span>
+      `;
+      stationDiv.appendChild(row);
+    });
+
+    container.appendChild(stationDiv);
+  }
+}
+
+async function refresh() {
+  try {
+    const data = await fetchTrains();
+    render(data);
+  } catch (error) {
+    document.getElementById("app").innerText = "Error loading train times.";
+  }
+}
+
+refresh();
+setInterval(refresh, 30000);
+</script>
+
+</body>
+</html>
