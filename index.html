@@ -53,7 +53,7 @@ const STATIONS = [
 ];
 
 async function fetchTrains() {
-  const url = `https://api.wmata.com/StationPrediction.svc/json/GetPrediction/${STATIONS.join(",")}`;
+  const url = const url = `https://metro-proxy.yourname.workers.dev?stations=${STATIONS.join(",")}`;
 
   const response = await fetch(url, {
     headers: { "api_key": API_KEY }
@@ -114,4 +114,5 @@ setInterval(refresh, 30000);
 
 </body>
 </html>
+
 
