@@ -55,9 +55,8 @@ const STATIONS = [
 async function fetchTrains() {
   const url = const url = `https://metro-proxy.yourname.workers.dev?stations=${STATIONS.join(",")}`;
 
-  const response = await fetch(url, {
-    headers: { "api_key": API_KEY }
-  });
+const response = await fetch(url);
+
 
   if (!response.ok) {
     throw new Error("API error");
@@ -114,6 +113,7 @@ setInterval(refresh, 30000);
 
 </body>
 </html>
+
 
 
 
