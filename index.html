@@ -1,120 +1,166 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Metro Times</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metro Times</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --card: #1e1e1e;
+            --border: #333;
+            /* Official WMATA Colors */
+            --RD: #e21833; --BL: #0076c0; --OR: #f38f1d;
+            --SV: #aadaff; --GR: #00a650; --YL: #ffd200;
+        }
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #111;
-  color: white;
-  padding: 20px;
-}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: white;
+            padding: 15px;
+            margin: 0;
+        }
 
-h1 {
-  font-size: 22px;
-}
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+        }
 
-.station {
-  margin-bottom: 25px;
-  padding: 15px;
-  background: #1e1e1e;
-  border-radius: 8px;
-}
+        h1 { font-size: 1.4rem; margin: 0; }
+        #last-updated { font-size: 0.8rem; color: #888; }
 
-.train {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid #333;
-}
+        .station-card {
+            background: var(--card);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
 
-.train:last-child {
-  border-bottom: none;
-}
-</style>
+        .station-name {
+            background: #2a2a2a;
+            padding: 12px 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .train-row {
+            display: grid;
+            grid-template-columns: 45px 1fr 60px;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .train-row:last-child { border-bottom: none; }
+
+        .line-pill {
+            display: inline-block;
+            width: 30px;
+            height: 20px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            line-height: 20px;
+            color: #000;
+        }
+
+        /* Line Color Mapping */
+        .RD { background: var(--RD); color: white; }
+        .BL { background: var(--BL); color: white; }
+        .OR { background: var(--OR); color: white; }
+        .SV { background: var(--SV); }
+        .GR { background: var(--GR); color: white; }
+        .YL { background: var(--YL); }
+
+        .dest { font-weight: 500; padding-left: 5px; }
+        .time { text-align: right; font-weight: bold; color: #4cd964; }
+        .time.imminent { color: #ff3b30; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
 </head>
-
 <body>
 
-<h1>🚇 Metro Train Times</h1>
-<div id="app">Loading...</div>
+    <header>
+        <h1>🚇 Metro Times</h1>
+        <div id="last-updated">Updating...</div>
+    </header>
 
-<script>
+    <div id="app">Initialising...</div>
 
+    <script>
+        const STATIONS = ["B05", "B06", "E06", "E01", "F01", "C07"];
 
-const STATIONS = [
-  "B05",        // Brookland–CUA
-  "B06", "E06", // Fort Totten
-  "E01", "F01", // Gallery Place
-  "C07"         // Pentagon
-];
+        async function fetchTrains() {
+            const url = `https://metro-proxy.josborne101.workers.dev?stations=${STATIONS.join(",")}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("API Offline");
+            return response.json();
+        }
 
-async function fetchTrains() {
-  const url = const url = `https://metro-proxy.josborne101.workers.dev?stations=${STATIONS.join(",")}`;
+        function render(data) {
+            const container = document.getElementById("app");
+            const updateEl = document.getElementById("last-updated");
+            
+            if (!data.Trains || data.Trains.length === 0) {
+                container.innerHTML = "<p style='padding:20px;'>No trains found.</p>";
+                return;
+            }
 
-const response = await fetch(url);
+            // Grouping trains by station
+            const grouped = data.Trains.reduce((acc, train) => {
+                if (!acc[train.LocationName]) acc[train.LocationName] = [];
+                acc[train.LocationName].push(train);
+                return acc;
+            }, {});
 
+            let html = '';
+            for (const station in grouped) {
+                html += `<div class="station-card">
+                            <div class="station-name">${station}</div>`;
+                
+                grouped[station].forEach(t => {
+                    const isImminent = t.Min === "ARR" || t.Min === "BRD";
+                    const displayTime = isImminent ? t.Min : `${t.Min}m`;
+                    
+                    html += `
+                        <div class="train-row">
+                            <div class="line-pill ${t.Line}">${t.Line}</div>
+                            <div class="dest">${t.DestinationName}</div>
+                            <div class="time ${isImminent ? 'imminent' : ''}">${displayTime}</div>
+                        </div>`;
+                });
+                
+                html += `</div>`;
+            }
 
-  if (!response.ok) {
-    throw new Error("API error");
-  }
+            container.innerHTML = html;
+            updateEl.innerText = `Updated: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}`;
+        }
 
-  return response.json();
-}
+        async function refresh() {
+            try {
+                const data = await fetchTrains();
+                render(data);
+            } catch (error) {
+                console.error(error);
+                document.getElementById("app").innerHTML = `<div style="color: #ff3b30; padding: 20px;">Unable to load data.</div>`;
+            }
+        }
 
-function render(data) {
-  const container = document.getElementById("app");
-  container.innerHTML = "";
-
-  const grouped = {};
-
-  data.Trains.forEach(train => {
-    if (!grouped[train.LocationName]) {
-      grouped[train.LocationName] = [];
-    }
-    grouped[train.LocationName].push(train);
-  });
-
-  for (const station in grouped) {
-    const stationDiv = document.createElement("div");
-    stationDiv.className = "station";
-    stationDiv.innerHTML = `<h2>${station}</h2>`;
-
-    grouped[station].forEach(t => {
-      const row = document.createElement("div");
-      row.className = "train";
-      row.innerHTML = `
-        <span>${t.Line}</span>
-        <span>${t.DestinationName}</span>
-        <span>${t.Min}</span>
-      `;
-      stationDiv.appendChild(row);
-    });
-
-    container.appendChild(stationDiv);
-  }
-}
-
-async function refresh() {
-  try {
-    const data = await fetchTrains();
-    render(data);
-  } catch (error) {
-    document.getElementById("app").innerText = "Error loading train times.";
-  }
-}
-
-refresh();
-setInterval(refresh, 30000);
-</script>
-
+        // Run immediately and then every 30 seconds
+        refresh();
+        setInterval(refresh, 30000);
+    </script>
 </body>
 </html>
-
-
-
-
-
