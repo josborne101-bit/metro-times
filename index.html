@@ -50,7 +50,7 @@
 
         .train-row {
             display: grid;
-            grid-template-columns: 45px 1fr 60px;
+            grid-template-columns: 45px 1fr 60px 60px;
             align-items: center;
             padding: 12px 15px;
             border-bottom: 1px solid var(--border);
@@ -133,21 +133,19 @@
                     const isImminent = t.Min === "ARR" || t.Min === "BRD";
 const displayTime = isImminent ? t.Min : `${t.Min}m`;
 
-// Only show car count if it is valid
+// Only show valid car counts
 let cars = "";
 if (t.Car && t.Car !== "-" && t.Car !== "0") {
-    cars = `${t.Car} cars`;
+    cars = `${t.Car}`;
 }
-
-// Build time display
-const timeDisplay = cars ? `${cars} · ${displayTime}` : displayTime;
 
 html += `
     <div class="train-row">
         <div class="line-pill ${t.Line}">${t.Line}</div>
         <div class="dest">${t.DestinationName}</div>
+        <div class="cars">${cars}</div>
         <div class="time ${isImminent ? 'imminent' : ''}">
-            ${timeDisplay}
+            ${displayTime}
         </div>
     </div>`;
                 });
