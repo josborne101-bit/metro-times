@@ -134,18 +134,21 @@ let html = '';
 
 STATION_ORDER.forEach(station => {
 
-    trains.sort((a, b) => {
-
-    const convert = (m) => {
-        if (m === "ARR" || m === "BRD") return 0;
-        if (m === "---") return 999;
-        return parseInt(m);
-    };
-
-    return convert(a.Min) - convert(b.Min);
-});
+    const trains = data.Trains.filter(t => t.LocationName === station);
 
     if (trains.length === 0) return;
+
+    // Sort trains by arrival time
+    trains.sort((a, b) => {
+
+        const convert = (m) => {
+            if (m === "ARR" || m === "BRD") return 0;
+            if (m === "---") return 999;
+            return parseInt(m);
+        };
+
+        return convert(a.Min) - convert(b.Min);
+    });
 
     html += `<div class="station-card">
                 <div class="station-name">${station}</div>`;
@@ -157,7 +160,7 @@ STATION_ORDER.forEach(station => {
 
         let cars = "";
         if (t.Car && t.Car !== "-" && t.Car !== "0") {
-            cars = `${t.Car}`;
+            cars = t.Car;
         }
 
         html += `
@@ -170,6 +173,9 @@ STATION_ORDER.forEach(station => {
             </div>
         </div>`;
     });
+
+    html += `</div>`;
+});
 
     html += `</div>`;
 });
