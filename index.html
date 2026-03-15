@@ -131,11 +131,19 @@
             }, {});
 
             let html = '';
-            for (const station in grouped) {
+
+STATION_ORDER.forEach(station => {
+
+    const trains = data.Trains.filter(t => t.LocationName === station);
+
+    if (trains.length === 0) return;
+
+    html += `<div class="station-card">
+                <div class="station-name">${station}</div>`;
                 html += `<div class="station-card">
                             <div class="station-name">${station}</div>`;
                 
-                grouped[station].forEach(t => {
+                trains.forEach(t => {
                     const isImminent = t.Min === "ARR" || t.Min === "BRD";
 const displayTime = isImminent ? t.Min : `${t.Min}m`;
 
