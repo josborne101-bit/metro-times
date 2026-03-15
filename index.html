@@ -131,14 +131,25 @@
                 
                 grouped[station].forEach(t => {
                     const isImminent = t.Min === "ARR" || t.Min === "BRD";
-                    const displayTime = isImminent ? t.Min : `${t.Min}m`;
-                    
-                    html += `
-                        <div class="train-row">
-                            <div class="line-pill ${t.Line}">${t.Line}</div>
-                            <div class="dest">${t.DestinationName}</div>
-                            <div class="time ${isImminent ? 'imminent' : ''}">${displayTime}</div>
-                        </div>`;
+const displayTime = isImminent ? t.Min : `${t.Min}m`;
+
+// Only show car count if it is valid
+let cars = "";
+if (t.Car && t.Car !== "-" && t.Car !== "0") {
+    cars = `${t.Car} cars`;
+}
+
+// Build time display
+const timeDisplay = cars ? `${cars} · ${displayTime}` : displayTime;
+
+html += `
+    <div class="train-row">
+        <div class="line-pill ${t.Line}">${t.Line}</div>
+        <div class="dest">${t.DestinationName}</div>
+        <div class="time ${isImminent ? 'imminent' : ''}">
+            ${timeDisplay}
+        </div>
+    </div>`;
                 });
                 
                 html += `</div>`;
