@@ -99,7 +99,13 @@
     <div id="app">Initialising...</div>
 
     <script>
-        const STATIONS = ["B05", "B06", "E06", "E01", "F01", "C07"];
+        const STATIONS = ["B05","E06","F01","C07"];
+        const STATION_ORDER = [
+    "Brookland",
+    "Fort Totten",
+    "Gallery Place",
+    "Pentagon"
+];
 
         async function fetchTrains() {
             const url = `https://metro-proxy.josborne101.workers.dev?stations=${STATIONS.join(",")}`;
