@@ -130,7 +130,7 @@
                 return acc;
             }, {});
 
-            let html = '';
+let html = '';
 
 STATION_ORDER.forEach(station => {
 
@@ -140,29 +140,30 @@ STATION_ORDER.forEach(station => {
 
     html += `<div class="station-card">
                 <div class="station-name">${station}</div>`;
-                html += `<div class="station-card">
-                            <div class="station-name">${station}</div>`;
-                
-                trains.forEach(t => {
-                    const isImminent = t.Min === "ARR" || t.Min === "BRD";
-const displayTime = isImminent ? t.Min : `${t.Min}m`;
 
-// Only show valid car counts
-let cars = "";
-if (t.Car && t.Car !== "-" && t.Car !== "0") {
-    cars = `${t.Car}`;
-}
+    trains.forEach(t => {
 
-html += `
-    <div class="train-row">
-        <div class="line-pill ${t.Line}">${t.Line}</div>
-        <div class="dest">${t.DestinationName}</div>
-        <div class="cars">${cars}</div>
-        <div class="time ${isImminent ? 'imminent' : ''}">
-            ${displayTime}
-        </div>
-    </div>`;
-                });
+        const isImminent = t.Min === "ARR" || t.Min === "BRD";
+        const displayTime = isImminent ? t.Min : `${t.Min}m`;
+
+        let cars = "";
+        if (t.Car && t.Car !== "-" && t.Car !== "0") {
+            cars = `${t.Car}`;
+        }
+
+        html += `
+        <div class="train-row">
+            <div class="line-pill ${t.Line}">${t.Line}</div>
+            <div class="dest">${t.DestinationName}</div>
+            <div class="cars">${cars}</div>
+            <div class="time ${isImminent ? 'imminent' : ''}">
+                ${displayTime}
+            </div>
+        </div>`;
+    });
+
+    html += `</div>`;
+});
                 
                 html += `</div>`;
             }
