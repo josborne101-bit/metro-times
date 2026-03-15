@@ -9,13 +9,12 @@
             --bg: #121212;
             --card: #1e1e1e;
             --border: #333;
-            /* Official WMATA Colors */
             --RD: #e21833; --BL: #0076c0; --OR: #f38f1d;
             --SV: #aadaff; --GR: #00a650; --YL: #ffd200;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg);
             color: white;
             padding: 15px;
@@ -50,7 +49,7 @@
 
         .train-row {
             display: grid;
-            grid-template-columns: 45px 1fr 60px 60px;
+            grid-template-columns: 45px 1fr 40px 60px;
             align-items: center;
             padding: 12px 15px;
             border-bottom: 1px solid var(--border);
@@ -67,18 +66,17 @@
             font-size: 0.75rem;
             font-weight: bold;
             line-height: 20px;
-            color: #000;
         }
 
-        /* Line Color Mapping */
         .RD { background: var(--RD); color: white; }
         .BL { background: var(--BL); color: white; }
         .OR { background: var(--OR); color: white; }
-        .SV { background: var(--SV); }
+        .SV { background: var(--SV); color: black; }
         .GR { background: var(--GR); color: white; }
-        .YL { background: var(--YL); }
+        .YL { background: var(--YL); color: black; }
 
-        .dest { font-weight: 500; padding-left: 5px; }
+        .dest { font-weight: 500; padding-left: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cars { font-size: 0.8rem; color: #888; text-align: center; }
         .time { text-align: right; font-weight: bold; color: #4cd964; }
         .time.imminent { color: #ff3b30; animation: pulse 1s infinite; }
 
@@ -96,19 +94,21 @@
         <div id="last-updated">Updating...</div>
     </header>
 
-    <div id="app">Initialising...</div>
+    <div id="app">Initializing...</div>
 
     <script>
-        const STATIONS = ["B05","E06","F01","C07"];
-        const STATION_ORDER = [
-    "Brookland",
-    "Fort Totten",
-    "Gallery Place",
-    "Pentagon"
-];
+        // Use an object to map Codes to Display Names
+        const STATIONS = {
+            "B05": "Brookland-CUA",
+            "E06": "Fort Totten",
+            "F01": "Gallery Place",
+            "C07": "Pentagon"
+        };
+
+        const STATION_CODES = Object.keys(STATIONS);
 
         async function fetchTrains() {
-            const url = `https://metro-proxy.josborne101.workers.dev?stations=${STATIONS.join(",")}`;
+            const url = `https://metro-proxy.josborne101.workers.dev?stations=${STATION_CODES.join(",")}`;
             const response = await fetch(url);
             if (!response.ok) throw new Error("API Offline");
             return response.json();
@@ -123,61 +123,45 @@
                 return;
             }
 
-            // Grouping trains by station
-            const grouped = data.Trains.reduce((acc, train) => {
-                if (!acc[train.LocationName]) acc[train.LocationName] = [];
-                acc[train.LocationName].push(train);
-                return acc;
-            }, {});
+            let html = '';
 
-let html = '';
+            // Loop through our specific STATION_CODES to maintain order
+            STATION_CODES.forEach(code => {
+                // Filter by LocationCode instead of Name
+                const trains = data.Trains.filter(t => t.LocationCode === code);
 
-STATION_ORDER.forEach(station => {
+                if (trains.length === 0) return;
 
-    const trains = data.Trains.filter(t => t.LocationName === station);
+                // Sort trains by arrival time
+                trains.sort((a, b) => {
+                    const convert = (m) => {
+                        if (m === "ARR" || m === "BRD") return 0;
+                        if (m === "---" || !m) return 999;
+                        return parseInt(m);
+                    };
+                    return convert(a.Min) - convert(b.Min);
+                });
 
-    if (trains.length === 0) return;
+                html += `<div class="station-card">
+                            <div class="station-name">${STATIONS[code]}</div>`;
 
-    // Sort trains by arrival time
-    trains.sort((a, b) => {
+                trains.forEach(t => {
+                    const isImminent = t.Min === "ARR" || t.Min === "BRD";
+                    const displayTime = isImminent ? t.Min : `${t.Min}m`;
+                    const carCount = (t.Car && t.Car !== "-" && t.Car !== "0") ? t.Car : "";
 
-        const convert = (m) => {
-            if (m === "ARR" || m === "BRD") return 0;
-            if (m === "---") return 999;
-            return parseInt(m);
-        };
+                    html += `
+                    <div class="train-row">
+                        <div class="line-pill ${t.Line}">${t.Line}</div>
+                        <div class="dest">${t.DestinationName}</div>
+                        <div class="cars">${carCount}</div>
+                        <div class="time ${isImminent ? 'imminent' : ''}">${displayTime}</div>
+                    </div>`;
+                });
 
-        return convert(a.Min) - convert(b.Min);
-    });
+                html += `</div>`;
+            });
 
-    html += `<div class="station-card">
-                <div class="station-name">${station}</div>`;
-
-    trains.forEach(t => {
-
-        const isImminent = t.Min === "ARR" || t.Min === "BRD";
-        const displayTime = isImminent ? t.Min : `${t.Min}m`;
-
-        let cars = "";
-        if (t.Car && t.Car !== "-" && t.Car !== "0") {
-            cars = t.Car;
-        }
-
-        html += `
-        <div class="train-row">
-            <div class="line-pill ${t.Line}">${t.Line}</div>
-            <div class="dest">${t.DestinationName}</div>
-            <div class="cars">${cars}</div>
-            <div class="time ${isImminent ? 'imminent' : ''}">
-                ${displayTime}
-            </div>
-        </div>`;
-    });
-
-    html += `</div>`;
-});
-             
-              
             container.innerHTML = html;
             updateEl.innerText = `Updated: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}`;
         }
@@ -192,9 +176,8 @@ STATION_ORDER.forEach(station => {
             }
         }
 
-        // Run immediately and then every 30 seconds
         refresh();
-        setInterval(refresh, 30000);
+        setInterval(refresh, 20000); // Updated to 20s for better responsiveness
     </script>
 </body>
 </html>
