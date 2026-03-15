@@ -134,7 +134,16 @@ let html = '';
 
 STATION_ORDER.forEach(station => {
 
-    const trains = data.Trains.filter(t => t.LocationName === station);
+    trains.sort((a, b) => {
+
+    const convert = (m) => {
+        if (m === "ARR" || m === "BRD") return 0;
+        if (m === "---") return 999;
+        return parseInt(m);
+    };
+
+    return convert(a.Min) - convert(b.Min);
+});
 
     if (trains.length === 0) return;
 
