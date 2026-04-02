@@ -114,57 +114,59 @@
             return response.json();
         }
 
-        function render(data) {
-            const container = document.getElementById("app");
-            const updateEl = document.getElementById("last-updated");
-            
-            if (!data.Trains || data.Trains.length === 0) {
-                container.innerHTML = "<p style='padding:20px;'>No trains found.</p>";
-                return;
-            }
+function render(data) {
+    const container = document.getElementById("app");
+    const updateEl = document.getElementById("last-updated");
+    
+    if (!data.Trains || data.Trains.length === 0) {
+        container.innerHTML = "<p style='padding:20px;'>No trains found.</p>";
+        return;
+    }
 
-            let html = '';
-
-            // Loop through our specific STATION_CODES to maintain order
-            STATION_CODES.forEach(code => {
-                // Filter by LocationCode instead of Name
-                const trains = data.Trains.filter(t => t.LocationCode === code);
-
-                if (trains.length === 0) return;
-
-                // Sort trains by arrival time
-                trains.sort((a, b) => {
-                    const convert = (m) => {
-                        if (m === "ARR" || m === "BRD") return 0;
-                        if (m === "---" || !m) return 999;
-                        return parseInt(m);
-                    };
-                    return convert(a.Min) - convert(b.Min);
-                });
-
-                html += `<div class="station-card">
-                            <div class="station-name">${STATIONS[code]}</div>`;
-
-                trains.forEach(t => {
-                    const isImminent = t.Min === "ARR" || t.Min === "BRD";
-                    const displayTime = isImminent ? t.Min : `${t.Min}m`;
-                    const carCount = (t.Car && t.Car !== "-" && t.Car !== "0") ? t.Car : "";
-
-                    html += `
-                    <div class="train-row">
-                        <div class="line-pill ${t.Line}">${t.Line}</div>
-                        <div class="dest">${t.DestinationName}</div>
-                        <div class="cars">${carCount}</div>
-                        <div class="time ${isImminent ? 'imminent' : ''}">${displayTime}</div>
-                    </div>`;
-                });
-
-                html += `</div>`;
-            });
-
-            container.innerHTML = html;
-            updateEl.innerText = `Updated: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}`;
+    // IMPROVED GROUPING: 
+    // We group by LocationName, but we PUSH to an array so we don't overwrite.
+    const grouped = {};
+    data.Trains.forEach(train => {
+        const name = train.LocationName;
+        if (!grouped[name]) {
+            grouped[name] = [];
         }
+        grouped[name].push(train);
+    });
+
+    let html = '';
+    // Sort the station names alphabetically so the list stays consistent
+    const sortedStations = Object.keys(grouped).sort();
+
+    for (const station of sortedStations) {
+        html += `<div class="station-card">
+                    <div class="station-name">${station}</div>`;
+        
+        // Sort trains within the station by time (Arrivals first)
+        grouped[station].sort((a, b) => {
+            const timeA = (a.Min === "ARR" || a.Min === "BRD") ? 0 : parseInt(a.Min) || 99;
+            const timeB = (b.Min === "ARR" || b.Min === "BRD") ? 0 : parseInt(b.Min) || 99;
+            return timeA - timeB;
+        });
+
+        grouped[station].forEach(t => {
+            const isImminent = t.Min === "ARR" || t.Min === "BRD";
+            const displayTime = isImminent ? t.Min : `${t.Min}m`;
+            
+            html += `
+                <div class="train-row">
+                    <div class="line-pill ${t.Line}">${t.Line}</div>
+                    <div class="dest">${t.DestinationName}</div>
+                    <div class="time ${isImminent ? 'imminent' : ''}">${displayTime}</div>
+                </div>`;
+        });
+        
+        html += `</div>`;
+    }
+
+    container.innerHTML = html;
+    updateEl.innerText = `Updated: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}`;
+}
 
         async function refresh() {
             try {
